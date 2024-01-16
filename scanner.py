@@ -2,7 +2,6 @@ import os
 import subprocess
 import time
 import sys
-import scapy.all as scapy
 
 # Install Scapy if not already installed
 try:
