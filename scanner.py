@@ -51,7 +51,7 @@ def get_live_hosts(ip_input):
     live_hosts = []
     try:
         ip = ip_address(ip_input)
-        print(f"Scanning {ip} for live hosts...")
+        print(f"Scanning {ip} for life signs...")
         pkt = IP(dst=str(ip))/ICMP()
         resp = sr1(pkt, timeout=2, verbose=0)
         if resp:
@@ -59,7 +59,7 @@ def get_live_hosts(ip_input):
             live_hosts.append(str(ip))
     except ValueError:
         for ip in ip_network(ip_input).hosts():
-            print(f"Scanning {ip} for live hosts...")
+            print(f"Scanning {ip} for life signs...")
             pkt = IP(dst=str(ip))/ICMP()
             resp = sr1(pkt, timeout=2, verbose=0)
             if resp:
