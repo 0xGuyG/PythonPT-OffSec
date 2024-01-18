@@ -3,7 +3,7 @@
 """
 Network Security Scanner Script
 --------------------------------
-This script performs network scanning and vulnerability assessment tasks.
+This Python3 script performs network scanning and vulnerability assessment tasks.
 It includes functionality to check for live hosts, scan open ports, detect services,
 and perform brute force attacks using various tools.
 
