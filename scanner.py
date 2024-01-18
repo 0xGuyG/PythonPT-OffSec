@@ -53,7 +53,7 @@ def install_enum4linux():
             print("Enum4linux not found, installing...")
             subprocess.run(["sudo", "apt-get", "install", "-y", "enum4linux"], check=True)
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"An error occurred while installing Enum4linux: {e}")
 
 def install_nmap():
     """
@@ -67,7 +67,7 @@ def install_nmap():
             print("Nmap not found, installing...")
             subprocess.run(["sudo", "apt-get", "install", "-y", "nmap"], check=True)
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"An error occurred while installing Nmap: {e}")
 
 def install_searchsploit():
     """
@@ -83,7 +83,7 @@ def install_searchsploit():
             subprocess.run(["sudo", "git", "clone", "https://github.com/offensive-security/exploitdb.git", "/opt/exploitdb"], check=True)
             subprocess.run(["sudo", "ln", "-sf", "/opt/exploitdb/searchsploit", "/usr/local/bin/searchsploit"], check=True)
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"An error occurred while installing Searchsploit: {e}")
 
 def install_hydra():
     """
@@ -97,7 +97,7 @@ def install_hydra():
             print("Hydra not found, installing...")
             subprocess.run(["sudo", "apt-get", "install", "-y", "hydra"], check=True)
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"An error occurred while installing Hydra: {e}")
 
 def install_crunch():
     """
@@ -111,7 +111,22 @@ def install_crunch():
             print("Crunch not found, installing...")
             subprocess.run(["sudo", "apt-get", "install", "-y", "crunch"], check=True)
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"An error occurred while installing Crunch: {e}")
+
+def install_openvpn():
+    """
+    Checks if OpenVPN is installed and installs it if not found.
+    """
+    try:
+        result = subprocess.run(["openvpn", "--version"], text=True, capture_output=True, check=False)
+        if "OpenVPN" in result.stdout or "OpenVPN" in result.stderr:
+            print("OpenVPN is already installed.")
+        else:
+            print("OpenVPN not found, installing...")
+            subprocess.run(["sudo", "apt-get", "install", "-y", "openvpn"], check=True)
+    except Exception as e:
+        print(f"An error occurred while installing OpenVPN: {e}")
+
 
 def get_live_hosts(ip_input):
     live_hosts = []
