@@ -127,7 +127,6 @@ def install_openvpn():
     except Exception as e:
         print(f"An error occurred while installing OpenVPN: {e}")
 
-
 def get_live_hosts(ip_input):
     live_hosts = []
     try:
@@ -157,7 +156,6 @@ def get_live_hosts(ip_input):
         logging.error(f"An unexpected error occurred: {e}")
         print(f"An unexpected error occurred: {e}")
     return live_hosts
-
 
 def icmp_scan(ip):
     try:
@@ -323,16 +321,16 @@ def run_hydra(ip, service_port_pairs, user_list_file, pass_list_file):
         hydra_command = ["hydra", "-L", user_list_file, "-P", pass_list_file, f"{service}://{ip}:{port}"]
         
         with open(hydra_output_file, "w") as outfile:
-            try:
-                print(f"Running Hydra on {ip}:{port} for {service} service...")
-                subprocess.run(hydra_command, stdout=outfile, stderr=outfile, check=True)
-                logging.info(f"Hydra attack successful on {ip}:{port} for {service}")  
-                print(f"Hydra results saved in {hydra_output_file}")
-            except subprocess.CalledProcessError as e:
-                logging.error(f"Hydra encountered an error on {ip}:{port} for {service}: {e}")
-                print(f"Hydra encountered an error: {e}. Command: {' '.join(hydra_command)}")
-                print(f"Check {hydra_output_file} for details.")
+            print(f"Running Hydra on {ip}:{port} for {service} service...")
+            process = subprocess.run(hydra_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            outfile.write(process.stdout.decode())
 
+            if process.returncode != 0:
+                logging.info(f"Hydra finished with non-zero exit code on {ip}:{port} for {service}. This might indicate a successful attack.")
+                print(f"Hydra may have found credentials. Check {hydra_output_file} for details.")
+            else:
+                logging.info(f"Hydra did not find credentials on {ip}:{port} for {service}.")
+                print(f"No credentials found by Hydra on {ip}:{port} for {service}.")
 
 def save_list_to_file(lst, filename):
     """
