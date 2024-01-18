@@ -33,6 +33,7 @@ import subprocess
 import sys
 from ipaddress import ip_address, ip_network
 from scapy.all import *
+import shutil
 
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
@@ -183,11 +184,16 @@ def run_searchsploit(nmap_xml_file):
 def get_user_list():
     """
     Prompts the user to either enter a path to a username list file or input usernames directly.
-    Returns a list of usernames or a string representing the path to the username file.
+    If usernames are input directly, they are saved to 'user_list.txt'.
+    If a path is provided, 'user_list.txt' will be a copy of the specified file.
+    Returns the path 'user_list.txt'.
     """
     choice = input("Do you want to enter a path to a username list or input usernames? (path/input): ").lower()
+    output_file = "user_list.txt"
+
     if choice == "path":
-        return input("Enter the path to the username list: ")
+        path = input("Enter the path to the username list: ")
+        shutil.copy(path, output_file)
     elif choice == "input":
         print("Enter usernames, one per line. Enter 'done' when finished:")
         user_list = []
@@ -196,29 +202,40 @@ def get_user_list():
             if user_input == 'done':
                 break
             user_list.append(user_input)
-        return user_list
+        with open(output_file, 'w') as file:
+            for username in user_list:
+                file.write("%s\n" % username)
     else:
         print("Invalid choice.")
         return get_user_list()
 
+    return output_file
+
 def get_password_list():
     """
     Allows the user to either generate a password list using Crunch or specify a path to a password file.
-    Returns the path to the password list file.
+    If the list is generated using Crunch, it is saved and copied to 'pass_list.txt'.
+    If a path is provided, 'pass_list.txt' will be a copy of the specified file.
+    Returns the path 'pass_list.txt'.
     """
     choice = input("Do you want to use Crunch to generate a password list, or specify a path to one? (crunch/path): ").lower()
+    output_file = "pass_list.txt"
+    
     if choice == "crunch":
         min_length = int(input("Enter minimum length of passwords: "))
         max_length = int(input("Enter maximum length of passwords: "))
         charset = input("Enter the character set for the passwords: ")
-        output_file = "crunch_output.txt"
-        subprocess.run(["crunch", str(min_length), str(max_length), charset, "-o", output_file], check=True)
-        return output_file
+        crunch_output = "crunch_output.txt"
+        subprocess.run(["crunch", str(min_length), str(max_length), charset, "-o", crunch_output], check=True)
+        shutil.copy(crunch_output, output_file)
     elif choice == "path":
-        return input("Enter the path to the password list: ")
+        path = input("Enter the path to the password list: ")
+        shutil.copy(path, output_file)
     else:
         print("Invalid choice.")
         return get_password_list()
+
+    return output_file
 
 def run_enum4linux_scan(ip):
     """
