@@ -389,6 +389,8 @@ if __name__ == "__main__":
     main()
 
 #To be integrated later:
+#
+#
 #VPN:
 #def start_vpn(vpn_config_path):
 #    """
@@ -416,5 +418,6 @@ if __name__ == "__main__":
 #    start_vpn(vpn_config_path) #Start VPN at the beginning
 #    stop_vpn()  # Disconnect VPN at the end
 #
-#Proxychains with Tor: Ensure tools like Nmap, Hydra, and Enum4linux are prefixed with 'proxychains' in their respective functions.
+#Proxychains with Tor: 
+#Ensure tools like Nmap, Hydra, and Enum4linux are prefixed with 'proxychains' in their respective functions.
 #Configure Proxychains
