@@ -393,9 +393,10 @@ def start_vpn(vpn_config_path):
     Starts an OpenVPN connection using the provided configuration file.
     """
     try:
-        subprocess.run(["sudo", "openvpn", "--config", vpn_config_path], check=True)
+        subprocess.Popen(["sudo", "openvpn", "--config", vpn_config_path])
         logging.info(f"VPN started successfully using config: {vpn_config_path}")
-    except subprocess.CalledProcessError as e:
+        print("VPN started in the background.")
+    except Exception as e:
         logging.error(f"Failed to start the VPN with config {vpn_config_path}: {e}")
         print("Failed to start the VPN. Check your configuration.")
         sys.exit(1)
@@ -432,9 +433,10 @@ def main():
     install_enum4linux()
     install_hydra()
     install_crunch()
+    install_openvpn()
   
     # Ask user if they want to use VPN
-    use_vpn = input("Would you like to activate a VPN? (yes/no): ").lower()
+    use_vpn = input("Would you like to activate a VPN for an external Penetration Test? (yes/no): ").lower()
     if use_vpn == "yes":
         vpn_config_path = input("Enter the path to your OpenVPN configuration file: ")
         start_vpn(vpn_config_path)
