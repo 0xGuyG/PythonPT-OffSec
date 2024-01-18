@@ -502,3 +502,4 @@ if __name__ == "__main__":
 #Proxychains with Tor: 
 #Ensure tools like Nmap, Hydra, and Enum4linux are prefixed with 'proxychains' in their respective functions.
 #Configure Proxychains
+#https://github.com/HackWithSumit/Tor-Proxychains
