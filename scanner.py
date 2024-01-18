@@ -253,19 +253,20 @@ def save_list_to_file(lst, filename):
 def detect_services(host, ports_and_banners):
     """
     Detects services running on open ports based on port numbers and banners.
+    Known ports for specific services are checked first, followed by banner inspection.
     Returns a list of tuples containing service names and port numbers.
     """
     services = []
     for port, banner in ports_and_banners:
-        if "SSH" in banner:
+        if port == 22 or "SSH" in banner:
             services.append(("ssh", port))
-        elif "FTP" in banner:
+        elif port == 21 or "FTP" in banner:
             services.append(("ftp", port))
-        elif "SMB" in banner or "Microsoft-DS" in banner or port in [139, 445]:
+        elif port in [139, 445] or "SMB" in banner or "Microsoft-DS" in banner:
             services.append(("smb", port))
-        elif "MySQL" in banner or port == 3306:
+        elif port == 3306 or "MySQL" in banner:
             services.append(("mysql", port))
-        elif "RDP" in banner or port == 3389:
+        elif port == 3389 or "RDP" in banner:
             services.append(("rdp", port))
     return services
 
@@ -275,10 +276,13 @@ def perform_brute_force(host, services, user_list, pass_list):
     Enum4linux is used for SMB services, and Hydra for others.
     """
     for service, port in services:
+        user_list_file = save_list_to_file(user_list, "user_list.txt")
+        pass_list_file = save_list_to_file(pass_list, "pass_list.txt")
+
         if service == "smb":
             run_enum4linux_scan(host)
         else:
-            run_hydra(host, port, service, user_list, pass_list)
+            run_hydra(host, port, service, user_list_file, pass_list_file)
 
 def main():
     """
