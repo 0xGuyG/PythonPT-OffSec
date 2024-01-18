@@ -272,17 +272,19 @@ def run_enum4linux_scan(ip):
     except subprocess.CalledProcessError as e:
         print(f"Enum4linux encountered an error: {e}. Command: enum4linux -a {ip}")
 
-def run_hydra(ip, port, service, user_list_file, pass_list_file):
+def run_hydra(ip, service_port_pairs, user_list_file, pass_list_file):
     """
-    Runs Hydra for brute force attacks on the given IP, port, and service.
+    Runs Hydra for brute force attacks on the given IP for each service and port.
     Uses specified username and password lists for the attack.
+    Accepts a list of tuples (service, port).
     """
-    hydra_command = ["hydra", "-L", user_list_file, "-P", pass_list_file, f"{service}://{ip}:{port}"]
-    try:
-        print(f"Running Hydra on {ip}:{port} for {service} service...")
-        subprocess.run(hydra_command, check=True)
-    except subprocess.CalledProcessError as e:
-        print(f"Hydra encountered an error: {e}. Command: {' '.join(hydra_command)}")
+    for service, port in service_port_pairs:
+        hydra_command = ["hydra", "-L", user_list_file, "-P", pass_list_file, f"{service}://{ip}:{port}"]
+        try:
+            print(f"Running Hydra on {ip}:{port} for {service} service...")
+            subprocess.run(hydra_command, check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Hydra encountered an error: {e}. Command: {' '.join(hydra_command)}")
 
 def save_list_to_file(lst, filename):
     """
@@ -314,19 +316,21 @@ def detect_services(host, ports_and_banners):
             services.append(("rdp", port))
     return services
 
-def perform_brute_force(host, services, user_list, pass_list):
+def perform_brute_force(host, services, user_list_file, pass_list_file):
     """
     Performs brute force attacks for each detected service on the host.
     Enum4linux is used for SMB services, and Hydra for others.
     """
-    for service, port in services:
-        user_list_file = save_list_to_file(user_list, "user_list.txt")
-        pass_list_file = save_list_to_file(pass_list, "pass_list.txt")
+    # Prepare list of service-port pairs for Hydra, excluding SMB
+    service_port_pairs = [(service, port) for service, port in services if service != "smb"]
 
-        if service == "smb":
-            run_enum4linux_scan(host)
-        else:
-            run_hydra(host, port, service, user_list_file, pass_list_file)
+    # Run Hydra for non-SMB services
+    if service_port_pairs:
+        run_hydra(host, service_port_pairs, user_list_file, pass_list_file)
+
+    # Run Enum4linux for SMB service
+    if any(service == "smb" for service, port in services):
+        run_enum4linux_scan(host)
           
 def is_linux_system():
     """
