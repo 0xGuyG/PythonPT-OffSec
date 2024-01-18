@@ -322,3 +322,35 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+#VPN and Proxychains with Tor (will be integrated later):
+def start_vpn(vpn_config_path):
+    """
+    Starts an OpenVPN connection using the provided configuration file.
+    """
+    #try:
+        subprocess.run(["sudo", "openvpn", "--config", vpn_config_path], check=True)
+    #except subprocess.CalledProcessError:
+        print("Failed to start the VPN. Check your configuration.")
+        sys.exit(1)
+
+def stop_vpn():
+    """
+    Stops the OpenVPN connection.
+    """
+    # Stopping OpenVPN can be complex as it might require killing the process.
+    # This could be done based on the process ID or process name.
+    try:
+        subprocess.run(["sudo", "killall", "openvpn"], check=True)
+    except subprocess.CalledProcessError:
+        print("Failed to stop the VPN.")
+
+#Into Main function:
+vpn_config_path = input("Enter the path to your OpenVPN configuration file: ")
+    start_vpn(vpn_config_path) #Start VPN at the beginning
+    stop_vpn()  # Disconnect VPN at the end
+
+#Proxychains with Tor: Ensure tools like Nmap, Hydra, and Enum4linux are prefixed with 'proxychains' in their respective functions.
+#Configure Proxychains
