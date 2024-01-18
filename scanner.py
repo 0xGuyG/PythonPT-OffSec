@@ -39,40 +39,51 @@ logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
 def install_enum4linux():
     """
-    Checks if Enum4linux is installed. If not, installs it using apt-get.
+    Checks if Enum4linux is installed and installs it if not found.
     """
     try:
-        subprocess.run(["enum4linux", "-h"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except subprocess.CalledProcessError:
-        print("Enum4linux not found, installing...")
-        subprocess.run(["sudo", "apt-get", "install", "-y", "enum4linux"], check=True)
+        result = subprocess.run(["enum4linux", "-h"], text=True, capture_output=True, check=False)
+        if "enum4linux v" in result.stdout or "enum4linux v" in result.stderr:
+            print("Enum4linux is already installed.")
+        else:
+            print("Enum4linux not found, installing...")
+            subprocess.run(["sudo", "apt-get", "install", "-y", "enum4linux"], check=True)
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 def install_nmap():
     """
-    Checks if Nmap is installed. If not, installs it using apt-get.
+    Checks if Nmap is installed and installs it if not found.
     """
     try:
-        subprocess.run(["nmap", "-V"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except subprocess.CalledProcessError:
-        print("Nmap not found, installing...")
-        subprocess.run(["sudo", "apt-get", "install", "-y", "nmap"], check=True)
+        result = subprocess.run(["nmap", "-V"], text=True, capture_output=True, check=False)
+        if "Nmap version" in result.stdout:
+            print("Nmap is already installed.")
+        else:
+            print("Nmap not found, installing...")
+            subprocess.run(["sudo", "apt-get", "install", "-y", "nmap"], check=True)
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 def install_searchsploit():
     """
-    Checks if Searchsploit is installed. If not, installs it using git.
+    Checks if Searchsploit is installed and installs it if not found.
     """
     try:
-        subprocess.run(["searchsploit", "-v"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except subprocess.CalledProcessError:
-        print("Searchsploit not found, installing...")
-        subprocess.run(["sudo", "apt-get", "install", "-y", "git"], check=True)
-        subprocess.run(["sudo", "git", "clone", "https://github.com/offensive-security/exploitdb.git", "/opt/exploitdb"], check=True)
-        subprocess.run(["sudo", "ln", "-sf", "/opt/exploitdb/searchsploit", "/usr/local/bin/searchsploit"], check=True)
+        result = subprocess.run(["searchsploit", "-v"], text=True, capture_output=True, check=False)
+        if "Exploit Database" in result.stdout:
+            print("Searchsploit is already installed.")
+        else:
+            print("Searchsploit not found, installing...")
+            subprocess.run(["sudo", "apt-get", "install", "-y", "git"], check=True)
+            subprocess.run(["sudo", "git", "clone", "https://github.com/offensive-security/exploitdb.git", "/opt/exploitdb"], check=True)
+            subprocess.run(["sudo", "ln", "-sf", "/opt/exploitdb/searchsploit", "/usr/local/bin/searchsploit"], check=True)
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 def install_hydra():
     """
-    Checks if Hydra is installed by looking for its version information.
-    Installs it using apt-get if it's not found.
+    Checks if Hydra is installed and installs it if not found.
     """
     try:
         result = subprocess.run(["hydra", "-h"], text=True, capture_output=True, check=False)
@@ -86,13 +97,17 @@ def install_hydra():
 
 def install_crunch():
     """
-    Checks if Crunch is installed. If not, installs it using apt-get.
+    Checks if Crunch is installed and installs it if not found.
     """
     try:
-        subprocess.run(["crunch", "-h"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except subprocess.CalledProcessError:
-        print("Crunch not found, installing...")
-        subprocess.run(["sudo", "apt-get", "install", "-y", "crunch"], check=True)
+        result = subprocess.run(["crunch", "-h"], text=True, capture_output=True, check=False)
+        if "Crunch will now generate" in result.stdout:
+            print("Crunch is already installed.")
+        else:
+            print("Crunch not found, installing...")
+            subprocess.run(["sudo", "apt-get", "install", "-y", "crunch"], check=True)
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 def get_live_hosts(ip_input):
     """
