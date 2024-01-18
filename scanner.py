@@ -261,22 +261,28 @@ def get_password_list():
 def run_enum4linux_scan(ip):
     """
     Runs Enum4linux for SMB service scanning on the specified IP.
-    Outputs the results to a file and returns the filename.
+    Outputs the results to a file and handles any errors encountered.
     """
-    print(f"Running Enum4linux on {ip} for SMB service...")
     enum4linux_output = f"enum4linux_results_{ip}.txt"
-    with open(enum4linux_output, "w") as outfile:
-        subprocess.run(["enum4linux", "-a", ip], stdout=outfile, check=True)
-    print(f"Enum4linux scan results saved to {enum4linux_output}")
-    return enum4linux_output
+    try:
+        print(f"Running Enum4linux on {ip} for SMB service...")
+        with open(enum4linux_output, "w") as outfile:
+            subprocess.run(["enum4linux", "-a", ip], stdout=outfile, check=True)
+        print(f"Enum4linux scan results saved to {enum4linux_output}")
+    except subprocess.CalledProcessError as e:
+        print(f"Enum4linux encountered an error: {e}. Command: enum4linux -a {ip}")
 
 def run_hydra(ip, port, service, user_list_file, pass_list_file):
     """
     Runs Hydra for brute force attacks on the given IP, port, and service.
     Uses specified username and password lists for the attack.
     """
-    print(f"Running Hydra on {ip}:{port} for {service} service...")
-    subprocess.run(["hydra", "-L", user_list_file, "-P", pass_list_file, f"{service}://{ip}:{port}"], check=True)
+    hydra_command = ["hydra", "-L", user_list_file, "-P", pass_list_file, f"{service}://{ip}:{port}"]
+    try:
+        print(f"Running Hydra on {ip}:{port} for {service} service...")
+        subprocess.run(hydra_command, check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Hydra encountered an error: {e}. Command: {' '.join(hydra_command)}")
 
 def save_list_to_file(lst, filename):
     """
@@ -380,6 +386,12 @@ def main():
 
         # Store detected services for the host
         all_services[host] = services
+        
+        # Run a vulmerability scan based on Nmap
+        print(f"Running Nmap vulnerability scan on {host}...")
+        nmap_ports = [port for port, banner in ports_and_banners]
+        nmap_scan_file = run_nmap_scan(host, nmap_ports)
+        print(f"Nmap scan results saved in {nmap_scan_file}")
 
     # Ask user if they want to perform brute force attacks
     brute_force = input("Would you like to perform brute force attacks on the detected services? (yes/no): ").lower()
