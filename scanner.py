@@ -71,13 +71,18 @@ def install_searchsploit():
 
 def install_hydra():
     """
-    Checks if Hydra is installed. If not, installs it using apt-get.
+    Checks if Hydra is installed by looking for its version information.
+    Installs it using apt-get if it's not found.
     """
     try:
-        subprocess.run(["hydra", "-h"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except subprocess.CalledProcessError:
-        print("Hydra not found, installing...")
-        subprocess.run(["sudo", "apt-get", "install", "-y", "hydra"], check=True)
+        result = subprocess.run(["hydra", "-h"], text=True, capture_output=True, check=False)
+        if "Hydra v" in result.stdout or "Hydra v" in result.stderr:
+            print("Hydra is already installed.")
+        else:
+            print("Hydra not found, installing...")
+            subprocess.run(["sudo", "apt-get", "install", "-y", "hydra"], check=True)
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 def install_crunch():
     """
