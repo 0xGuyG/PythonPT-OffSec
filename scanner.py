@@ -387,12 +387,17 @@ def main():
         # Store detected services for the host
         all_services[host] = services
         
-        # Run a vulmerability scan based on Nmap
+        # Run Nmap vulnerability scan
         print(f"Running Nmap vulnerability scan on {host}...")
         nmap_ports = [port for port, banner in ports_and_banners]
         nmap_scan_file = run_nmap_scan(host, nmap_ports)
         print(f"Nmap scan results saved in {nmap_scan_file}")
 
+        # Process Nmap results with Searchsploit
+        print(f"Searching for exploits for {host} based on Nmap results...")
+        searchsploit_output_file = run_searchsploit(nmap_scan_file)
+        print(f"Searchsploit results saved in {searchsploit_output_file}")
+      
     # Ask user if they want to perform brute force attacks
     brute_force = input("Would you like to perform brute force attacks on the detected services? (yes/no): ").lower()
     if brute_force == "yes":
