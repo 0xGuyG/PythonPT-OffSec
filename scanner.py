@@ -113,43 +113,45 @@ def install_crunch():
     except Exception as e:
         print(f"An error occurred while installing Crunch: {e}")
 
+def tcp_port_scan(ip, port):
+    """Check if the TCP port is open on the given IP."""
+    try:
+        with socket.create_connection((ip, port), timeout=3):
+            return True
+    except socket.error:
+        return False
+
+def is_domain_alive(domain):
+    """Check if a domain is alive by resolving and checking common web ports."""
+    try:
+        resolved_ip = socket.gethostbyname(domain)
+        return tcp_port_scan(resolved_ip, 80) or tcp_port_scan(resolved_ip, 443)
+    except socket.gaierror:
+        return False
+
 def get_live_hosts(ip_input):
     """
-    Scans for live hosts in the given IP range or single IP address using ICMP packets.
-    Returns a list of live host IPs.
+    Scans for live hosts in the given IP range, single IP address, or domain.
+    Uses ICMP scan for IPs and TCP connection for domains.
+    Returns a list of live host IPs or domains.
     """
     live_hosts = []
     try:
-        if '/' in ip_input:
-            # Handle CIDR notation
+        if '/' in ip_input or '-' in ip_input:
             for ip in ip_network(ip_input, strict=False).hosts():
                 if icmp_scan(str(ip)):
                     live_hosts.append(str(ip))
-        elif '-' in ip_input:
-            # Handle IP range defined with a hyphen
-            start_ip, end_ip = ip_input.split('-')
-            start_ip = ip_address(start_ip)
-            end_ip = ip_address(end_ip)
-            while start_ip <= end_ip:
-                if icmp_scan(str(start_ip)):
-                    live_hosts.append(str(start_ip))
-                start_ip += 1
         else:
-            # Check if it's a valid IP address, if not, try to resolve as a domain name
             try:
                 ip = ip_address(ip_input)
                 if icmp_scan(str(ip)):
                     live_hosts.append(str(ip))
             except ValueError:
-                # Handle domain name
-                resolved_ip = socket.gethostbyname(ip_input)
-                if icmp_scan(resolved_ip):
-                    live_hosts.append(resolved_ip)
+                if is_domain_alive(ip_input):
+                    live_hosts.append(ip_input)
     except ValueError as ve:
-        logging.error(f"Invalid IP address, range, or domain name: {ve}")
         print(f"Invalid IP address, range, or domain name: {ve}")
     except Exception as e:
-        logging.error(f"An unexpected error occurred: {e}")
         print(f"An unexpected error occurred: {e}")
     return live_hosts
 
