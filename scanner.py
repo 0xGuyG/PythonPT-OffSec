@@ -128,12 +128,16 @@ def install_openvpn():
         print(f"An error occurred while installing OpenVPN: {e}")
 
 def get_live_hosts(ip_input):
+    """
+    Scans for live hosts in the given IP range or single IP address using ICMP packets.
+    Returns a list of live host IPs.
+    """
     live_hosts = []
     try:
         if '/' in ip_input:
             # Handle CIDR notation
             for ip in ip_network(ip_input, strict=False).hosts():
-                if icmp_scan(ip):
+                if icmp_scan(str(ip)):
                     live_hosts.append(str(ip))
         elif '-' in ip_input:
             # Handle IP range defined with a hyphen
@@ -141,17 +145,23 @@ def get_live_hosts(ip_input):
             start_ip = ip_address(start_ip)
             end_ip = ip_address(end_ip)
             while start_ip <= end_ip:
-                if icmp_scan(start_ip):
+                if icmp_scan(str(start_ip)):
                     live_hosts.append(str(start_ip))
                 start_ip += 1
         else:
-            # Handle single IP
-            ip = ip_address(ip_input)
-            if icmp_scan(ip):
-                live_hosts.append(str(ip))
+            # Check if it's a valid IP address, if not, try to resolve as a domain name
+            try:
+                ip = ip_address(ip_input)
+                if icmp_scan(str(ip)):
+                    live_hosts.append(str(ip))
+            except ValueError:
+                # Handle domain name
+                resolved_ip = socket.gethostbyname(ip_input)
+                if icmp_scan(resolved_ip):
+                    live_hosts.append(resolved_ip)
     except ValueError as ve:
-        logging.error(f"Invalid IP address or range: {ve}")
-        print(f"Invalid IP address or range: {ve}")
+        logging.error(f"Invalid IP address, range, or domain name: {ve}")
+        print(f"Invalid IP address, range, or domain name: {ve}")
     except Exception as e:
         logging.error(f"An unexpected error occurred: {e}")
         print(f"An unexpected error occurred: {e}")
