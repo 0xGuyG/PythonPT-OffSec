@@ -103,7 +103,7 @@ def install_crunch():
     """
     try:
         result = subprocess.run(["crunch", "-h"], text=True, capture_output=True, check=False)
-        if "Crunch will now generate" in result.stdout:
+        if "Crunch can create a wordlist" in result.stdout:
             print("Crunch is already installed.")
         else:
             print("Crunch not found, installing...")
@@ -322,6 +322,14 @@ def perform_brute_force(host, services, user_list, pass_list):
             run_enum4linux_scan(host)
         else:
             run_hydra(host, port, service, user_list_file, pass_list_file)
+          
+def is_linux_system():
+    """
+    Checks if the current operating system is Linux by looking for a file 
+    typically present in Linux distributions.
+    Returns True if the system is Linux, False otherwise.
+    """
+    return os.path.exists('/etc/os-release')
 
 def main():
     """
@@ -329,10 +337,10 @@ def main():
     Requires Linux with root privileges to run.
     """
     # Check if the operating system is Linux
-    if platform.system() != "Linux":
+    if not is_linux_system():
         print("This script is designed to run on Linux systems only.")
         sys.exit(1)
-
+      
     # Check for root privileges
     if os.geteuid() != 0:
         print("This script needs to be run with root privileges. Please run it with 'sudo'.")
