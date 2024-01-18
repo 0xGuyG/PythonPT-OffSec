@@ -32,6 +32,7 @@ import re
 import socket
 import subprocess
 import sys
+pip install scapy
 from ipaddress import ip_address, ip_network
 from scapy.all import *
 import shutil
