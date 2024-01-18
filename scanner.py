@@ -116,35 +116,45 @@ def install_crunch():
 def get_live_hosts(ip_input):
     live_hosts = []
     try:
-        # Check if the input is a single IP or a range
-        if '/' in ip_input or '-' in ip_input:
+        if '/' in ip_input:
+            # Handle CIDR notation
             for ip in ip_network(ip_input, strict=False).hosts():
                 if icmp_scan(ip):
                     live_hosts.append(str(ip))
+        elif '-' in ip_input:
+            # Handle IP range defined with a hyphen
+            start_ip, end_ip = ip_input.split('-')
+            start_ip = ip_address(start_ip)
+            end_ip = ip_address(end_ip)
+            while start_ip <= end_ip:
+                if icmp_scan(start_ip):
+                    live_hosts.append(str(start_ip))
+                start_ip += 1
         else:
+            # Handle single IP
             ip = ip_address(ip_input)
             if icmp_scan(ip):
                 live_hosts.append(str(ip))
     except ValueError as ve:
+        logging.error(f"Invalid IP address or range: {ve}")
         print(f"Invalid IP address or range: {ve}")
     except Exception as e:
+        logging.error(f"An unexpected error occurred: {e}")
         print(f"An unexpected error occurred: {e}")
-
     return live_hosts
 
+
 def icmp_scan(ip):
-    """
-    Conducts an ICMP scan on a single IP address.
-    Returns True if the host is alive, False otherwise.
-    """
     try:
         pkt = IP(dst=str(ip))/ICMP()
         resp = sr1(pkt, timeout=1, verbose=0)
         if resp:
+            logging.info(f"Live host found: {ip}")
             print(f"Live host found: {ip}")
             return True
         return False
     except Exception as e:
+        logging.error(f"Error scanning {ip}: {e}")
         print(f"Error scanning {ip}: {e}")
         return False
 
@@ -165,19 +175,15 @@ def get_port_range():
             print("Invalid input. Please enter numeric values.")
 
 def scan_ports(ip, start_port, end_port):
-    """
-    Scans the given IP address for open ports in the specified range.
-    Returns a list of tuples containing open port numbers and their banners.
-    """
     open_ports = []
     for port in range(start_port, end_port + 1):
-        print(f"Checking port {port} on {ip}...")
         pkt = IP(dst=ip)/TCP(dport=port, flags='S')
         resp = sr1(pkt, timeout=1, verbose=0)
         if resp and resp.haslayer(TCP) and resp.getlayer(TCP).flags == 0x12:
             banner = get_banner(ip, port)
-            print(f"Open port found on {ip}: {port} - Banner: {banner}")
             open_ports.append((port, banner))
+            logging.info(f"Open port found on {ip}: {port} - Banner: {banner}")
+            print(f"Open port found on {ip}: {port} - Banner: {banner}")
     return open_ports
 
 def get_banner(ip, port, timeout=2):
@@ -193,7 +199,8 @@ def get_banner(ip, port, timeout=2):
         s.close()
         banner = re.sub(r'[\r\n]', ' ', banner)
         return banner
-    except:
+    except Exception as e:
+        logging.error(f"Failed to retrieve banner for {ip} on port {port}: {e}")
         return "No banner or unable to retrieve"
 
 def run_nmap_scan(ip, ports):
@@ -204,6 +211,7 @@ def run_nmap_scan(ip, ports):
     port_str = ','.join(map(str, ports))
     filename = f"nmap_scan_{ip}.xml"
     subprocess.run(["nmap", "-sV", "--script=vuln", "-p", port_str, "-oX", filename, ip], check=True)
+    logging.info(f"Nmap scan completed for {ip}. Results saved in {filename}")
     return filename
 
 def run_searchsploit(nmap_xml_file):
@@ -214,6 +222,7 @@ def run_searchsploit(nmap_xml_file):
     searchsploit_output = f"searchsploit_results_{nmap_xml_file}.txt"
     with open(searchsploit_output, "w") as outfile:
         subprocess.run(["searchsploit", "-j", "--nmap", nmap_xml_file], stdout=outfile, check=True)
+    logging.info(f"Searchsploit results saved in {searchsploit_output}")
     return searchsploit_output
 
 def get_user_list():
@@ -243,7 +252,6 @@ def get_user_list():
     else:
         print("Invalid choice.")
         return get_user_list()
-
     return output_file
 
 def get_password_list():
@@ -269,7 +277,6 @@ def get_password_list():
     else:
         print("Invalid choice.")
         return get_password_list()
-
     return output_file
 
 def run_enum4linux_scan(ip):
@@ -281,9 +288,12 @@ def run_enum4linux_scan(ip):
     try:
         print(f"Running Enum4linux on {ip} for SMB service...")
         with open(enum4linux_output, "w") as outfile:
-            subprocess.run(["enum4linux", "-a", ip], stdout=outfile, check=True)
+            process = subprocess.run(["enum4linux", "-a", ip], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            outfile.write(process.stdout.decode())
+        logging.info(f"Enum4linux scan completed for {ip}. Results saved in {enum4linux_output}")
         print(f"Enum4linux scan results saved to {enum4linux_output}")
     except subprocess.CalledProcessError as e:
+        logging.error(f"Enum4linux encountered an error on {ip}: {e}. Check {enum4linux_output} for details")
         print(f"Enum4linux encountered an error: {e}. Command: enum4linux -a {ip}")
 
 def run_hydra(ip, service_port_pairs, user_list_file, pass_list_file):
@@ -301,8 +311,10 @@ def run_hydra(ip, service_port_pairs, user_list_file, pass_list_file):
             try:
                 print(f"Running Hydra on {ip}:{port} for {service} service...")
                 subprocess.run(hydra_command, stdout=outfile, stderr=outfile, check=True)
+                logging.info(f"Hydra attack successful on {ip}:{port} for {service}")  
                 print(f"Hydra results saved in {hydra_output_file}")
             except subprocess.CalledProcessError as e:
+                logging.error(f"Hydra encountered an error on {ip}:{port} for {service}: {e}")
                 print(f"Hydra encountered an error: {e}. Command: {' '.join(hydra_command)}")
                 print(f"Check {hydra_output_file} for details.")
 
@@ -361,6 +373,29 @@ def is_linux_system():
     """
     return os.path.exists('/etc/os-release')
 
+def start_vpn(vpn_config_path):
+    """
+    Starts an OpenVPN connection using the provided configuration file.
+    """
+    try:
+        subprocess.run(["sudo", "openvpn", "--config", vpn_config_path], check=True)
+        logging.info(f"VPN started successfully using config: {vpn_config_path}")
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Failed to start the VPN with config {vpn_config_path}: {e}")
+        print("Failed to start the VPN. Check your configuration.")
+        sys.exit(1)
+
+def stop_vpn():
+    """
+    Stops the OpenVPN connection.
+    """
+    try:
+        subprocess.run(["sudo", "killall", "openvpn"], check=True)
+        logging.info("VPN stopped successfully.")
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Failed to stop the VPN: {e}")
+        print("Failed to stop the VPN.")
+
 def main():
     """
     Main function that orchestrates the network scanning and vulnerability assessment.
@@ -382,7 +417,13 @@ def main():
     install_enum4linux()
     install_hydra()
     install_crunch()
-
+  
+    # Ask user if they want to use VPN
+    use_vpn = input("Would you like to activate a VPN? (yes/no): ").lower()
+    if use_vpn == "yes":
+        vpn_config_path = input("Enter the path to your OpenVPN configuration file: ")
+        start_vpn(vpn_config_path)
+      
     # Prompt user for IP address or range to scan
     ip_input = input("Enter an IP address or range to scan: ")
     live_hosts = get_live_hosts(ip_input)
@@ -433,42 +474,15 @@ def main():
         # Perform brute force attacks on each service for each host
         for host, services in all_services.items():
           if services:
-              user_list_file = get_user_list()
-              pass_list_file = get_password_list()
               perform_brute_force(host, services, user_list_file, pass_list_file)
+      # Stop VPN if it was started
+    if use_vpn == "yes":
+        stop_vpn()
 
 if __name__ == "__main__":
     main()
 
 #To be integrated later:
-#
-#
-#VPN:
-#def start_vpn(vpn_config_path):
-#    """
-#    Starts an OpenVPN connection using the provided configuration file.
-#    """
-#    try:
-#        subprocess.run(["sudo", "openvpn", "--config", vpn_config_path], check=True)
-#    except subprocess.CalledProcessError:
-#        print("Failed to start the VPN. Check your configuration.")
-#        sys.exit(1)
-#
-#def stop_vpn():
-#    """
-#    Stops the OpenVPN connection.
-#    """
-#    # Stopping OpenVPN can be complex as it might require killing the process.
-#    # This could be done based on the process ID or process name.
-#    try:
-#        subprocess.run(["sudo", "killall", "openvpn"], check=True)
-#    except subprocess.CalledProcessError:
-#        print("Failed to stop the VPN.")
-#
-#Into Main function:
-#vpn_config_path = input("Enter the path to your OpenVPN configuration file: ")
-#    start_vpn(vpn_config_path) #Start VPN at the beginning
-#    stop_vpn()  # Disconnect VPN at the end
 #
 #Proxychains with Tor: 
 #Ensure tools like Nmap, Hydra, and Enum4linux are prefixed with 'proxychains' in their respective functions.
