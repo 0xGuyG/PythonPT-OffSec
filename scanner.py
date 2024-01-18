@@ -37,6 +37,9 @@ from scapy.all import *
 import shutil
 
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
+logging.basicConfig(filename='network_scanner.log', level=logging.INFO, 
+                    format='%(asctime)s - %(levelname)s: %(message)s', 
+                    datefmt='%Y-%m-%d %H:%M:%S')
 
 def install_enum4linux():
     """
@@ -111,28 +114,39 @@ def install_crunch():
         print(f"An error occurred: {e}")
 
 def get_live_hosts(ip_input):
-    """
-    Scans for live hosts in the given IP range or single IP address using ICMP packets.
-    Returns a list of live host IPs.
-    """
     live_hosts = []
     try:
-        ip = ip_address(ip_input)
-        print(f"Scanning {ip} for life signs...")
+        # Check if the input is a single IP or a range
+        if '/' in ip_input or '-' in ip_input:
+            for ip in ip_network(ip_input, strict=False).hosts():
+                if icmp_scan(ip):
+                    live_hosts.append(str(ip))
+        else:
+            ip = ip_address(ip_input)
+            if icmp_scan(ip):
+                live_hosts.append(str(ip))
+    except ValueError as ve:
+        print(f"Invalid IP address or range: {ve}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+    return live_hosts
+
+def icmp_scan(ip):
+    """
+    Conducts an ICMP scan on a single IP address.
+    Returns True if the host is alive, False otherwise.
+    """
+    try:
         pkt = IP(dst=str(ip))/ICMP()
         resp = sr1(pkt, timeout=1, verbose=0)
         if resp:
             print(f"Live host found: {ip}")
-            live_hosts.append(str(ip))
-    except ValueError:
-        for ip in ip_network(ip_input).hosts():
-            print(f"Scanning {ip} for life signs...")
-            pkt = IP(dst=str(ip))/ICMP()
-            resp = sr1(pkt, timeout=1, verbose=0)
-            if resp:
-                print(f"Live host found: {ip}")
-                live_hosts.append(str(ip))
-    return live_hosts
+            return True
+        return False
+    except Exception as e:
+        print(f"Error scanning {ip}: {e}")
+        return False
 
 def get_port_range():
     """
@@ -277,14 +291,21 @@ def run_hydra(ip, service_port_pairs, user_list_file, pass_list_file):
     Runs Hydra for brute force attacks on the given IP for each service and port.
     Uses specified username and password lists for the attack.
     Accepts a list of tuples (service, port).
+    Outputs results and errors to a file.
     """
     for service, port in service_port_pairs:
+        hydra_output_file = f"hydra_{service}_{ip}_{port}_output.txt"
         hydra_command = ["hydra", "-L", user_list_file, "-P", pass_list_file, f"{service}://{ip}:{port}"]
-        try:
-            print(f"Running Hydra on {ip}:{port} for {service} service...")
-            subprocess.run(hydra_command, check=True)
-        except subprocess.CalledProcessError as e:
-            print(f"Hydra encountered an error: {e}. Command: {' '.join(hydra_command)}")
+        
+        with open(hydra_output_file, "w") as outfile:
+            try:
+                print(f"Running Hydra on {ip}:{port} for {service} service...")
+                subprocess.run(hydra_command, stdout=outfile, stderr=outfile, check=True)
+                print(f"Hydra results saved in {hydra_output_file}")
+            except subprocess.CalledProcessError as e:
+                print(f"Hydra encountered an error: {e}. Command: {' '.join(hydra_command)}")
+                print(f"Check {hydra_output_file} for details.")
+
 
 def save_list_to_file(lst, filename):
     """
@@ -411,8 +432,10 @@ def main():
 
         # Perform brute force attacks on each service for each host
         for host, services in all_services.items():
-            if services:
-                perform_brute_force(host, services, user_list_file, pass_list_file)
+          if services:
+              user_list_file = get_user_list()
+              pass_list_file = get_password_list()
+              perform_brute_force(host, services, user_list_file, pass_list_file)
 
 if __name__ == "__main__":
     main()
