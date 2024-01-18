@@ -113,20 +113,6 @@ def install_crunch():
     except Exception as e:
         print(f"An error occurred while installing Crunch: {e}")
 
-def install_openvpn():
-    """
-    Checks if OpenVPN is installed and installs it if not found.
-    """
-    try:
-        result = subprocess.run(["openvpn", "--version"], text=True, capture_output=True, check=False)
-        if "OpenVPN" in result.stdout or "OpenVPN" in result.stderr:
-            print("OpenVPN is already installed.")
-        else:
-            print("OpenVPN not found, installing...")
-            subprocess.run(["sudo", "apt-get", "install", "-y", "openvpn"], check=True)
-    except Exception as e:
-        print(f"An error occurred while installing OpenVPN: {e}")
-
 def get_live_hosts(ip_input):
     """
     Scans for live hosts in the given IP range or single IP address using ICMP packets.
@@ -396,30 +382,6 @@ def is_linux_system():
     """
     return os.path.exists('/etc/os-release')
 
-def start_vpn(vpn_config_path):
-    """
-    Starts an OpenVPN connection using the provided configuration file.
-    """
-    try:
-        subprocess.Popen(["sudo", "openvpn", "--config", vpn_config_path])
-        logging.info(f"VPN started successfully using config: {vpn_config_path}")
-        print("VPN started in the background.")
-    except Exception as e:
-        logging.error(f"Failed to start the VPN with config {vpn_config_path}: {e}")
-        print("Failed to start the VPN. Check your configuration.")
-        sys.exit(1)
-
-def stop_vpn():
-    """
-    Stops the OpenVPN connection.
-    """
-    try:
-        subprocess.run(["sudo", "killall", "openvpn"], check=True)
-        logging.info("VPN stopped successfully.")
-    except subprocess.CalledProcessError as e:
-        logging.error(f"Failed to stop the VPN: {e}")
-        print("Failed to stop the VPN.")
-
 def main():
     """
     Main function that orchestrates the network scanning and vulnerability assessment.
@@ -441,16 +403,9 @@ def main():
     install_enum4linux()
     install_hydra()
     install_crunch()
-    install_openvpn()
   
-    # Ask user if they want to use VPN
-    use_vpn = input("Would you like to activate a VPN for an external Penetration Test? (yes/no): ").lower()
-    if use_vpn == "yes":
-        vpn_config_path = input("Enter the path to your OpenVPN configuration file: ")
-        start_vpn(vpn_config_path)
-      
-    # Prompt user for IP address or range to scan
-    ip_input = input("Enter an IP address or range to scan: ")
+    # Prompt user for IP address, range or domain to scan
+    ip_input = input("Enter an IP address, range or domain to scan: ")
     live_hosts = get_live_hosts(ip_input)
 
     # Dictionary to store services detected on each host
@@ -500,16 +455,6 @@ def main():
         for host, services in all_services.items():
           if services:
               perform_brute_force(host, services, user_list_file, pass_list_file)
-      # Stop VPN if it was started
-    if use_vpn == "yes":
-        stop_vpn()
 
 if __name__ == "__main__":
     main()
-
-#To be integrated later:
-#
-#Proxychains with Tor: 
-#Ensure tools like Nmap, Hydra, and Enum4linux are prefixed with 'proxychains' in their respective functions.
-#Configure Proxychains
-#https://github.com/HackWithSumit/Tor-Proxychains
