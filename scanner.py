@@ -26,7 +26,6 @@ and legally, ensuring permission is obtained before scanning and testing network
 """
 
 import logging
-import platform
 import os
 import re
 import socket
