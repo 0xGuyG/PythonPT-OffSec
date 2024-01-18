@@ -26,6 +26,7 @@ and legally, ensuring permission is obtained before scanning and testing network
 """
 
 import logging
+import platform
 import os
 import re
 import socket
@@ -324,46 +325,68 @@ def perform_brute_force(host, services, user_list, pass_list):
 def main():
     """
     Main function that orchestrates the network scanning and vulnerability assessment.
-    Requires root privileges to run.
+    Requires Linux with root privileges to run.
     """
+    # Check if the operating system is Linux
+    if platform.system() != "Linux":
+        print("This script is designed to run on Linux systems only.")
+        sys.exit(1)
+
+    # Check for root privileges
     if os.geteuid() != 0:
         print("This script needs to be run with root privileges. Please run it with 'sudo'.")
         sys.exit(1)
 
+    # Install necessary tools
     install_nmap()
     install_searchsploit()
     install_enum4linux()
     install_hydra()
     install_crunch()
 
+    # Prompt user for IP address or range to scan
     ip_input = input("Enter an IP address or range to scan: ")
     live_hosts = get_live_hosts(ip_input)
 
+    # Dictionary to store services detected on each host
+    all_services = {}
+
+    # Scan each live host
     for host in live_hosts:
         print(f"Scanning {host} for open ports and banners...")
+        
+        # Get port range from user
         start_port, end_port = get_port_range()
+        
+        # Scan ports and detect services
         ports_and_banners = scan_ports(host, start_port, end_port)
 
         if not ports_and_banners:
             print(f"No open ports found on {host}.")
             continue
 
+        # Detect services based on ports and banners
         services = detect_services(host, ports_and_banners)
         for service, port in services:
             print(f"Detected {service} service on {host}:{port}")
 
-        if services:
-            brute_force = input("Would you like to perform brute force attacks? (yes/no): ").lower()
-            if brute_force == "yes":
-                user_list = get_user_list()
-                pass_list = get_password_list()
-                user_list_file = save_list_to_file(user_list, "user_list.txt")
-                pass_list_file = save_list_to_file(pass_list, "pass_list.txt")
-                run_hydra(host, port, service, user_list_file, pass_list_file)
+        # Store detected services for the host
+        all_services[host] = services
+
+    # Ask user if they want to perform brute force attacks
+    brute_force = input("Would you like to perform brute force attacks on the detected services? (yes/no): ").lower()
+    if brute_force == "yes":
+        # Get user and password lists for brute force
+        user_list_file = get_user_list()
+        pass_list_file = get_password_list()
+
+        # Perform brute force attacks on each service for each host
+        for host, services in all_services.items():
+            if services:
+                perform_brute_force(host, services, user_list_file, pass_list_file)
 
 if __name__ == "__main__":
     main()
-
 
 #To be integrated later:
 #VPN:
