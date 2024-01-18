@@ -20,5 +20,6 @@ Key Features:
   by specifying file paths or direct input.
 
 Note:
+Please install scapy using 'pip install scapy' before running the script.
 The script operates with the assumption it runs on linux and requires root privileges to perform certain operations. It should be used responsibly
 and legally, ensuring permission is obtained before scanning and testing networks and systems.
